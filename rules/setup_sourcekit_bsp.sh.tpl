@@ -94,12 +94,6 @@ def _platform_deps_aspect_impl(target, ctx):
     if DefaultInfo in target:
         direct_outputs = target[DefaultInfo].files.to_list()
 
-    source_files = []
-    if hasattr(ctx.rule.attr, "srcs"):
-        for src in ctx.rule.attr.srcs:
-            if hasattr(src, "files"):
-                source_files.extend(src.files.to_list())
-
     transitive_outputs = []
     transitive_output_groups = {}
 
@@ -113,7 +107,7 @@ def _platform_deps_aspect_impl(target, ctx):
                 if dep != None:
                     _collect_dep_outputs(dep, transitive_outputs, transitive_output_groups)
 
-    target_outputs = depset(direct_outputs + source_files, transitive = transitive_outputs)
+    target_outputs = depset(direct_outputs, transitive = transitive_outputs)
 
     output_groups = {
         "platform_deps": target_outputs,
@@ -149,18 +143,19 @@ platform_deps_aspect = aspect(
 ASPECT_EOF
 
 # Write the wrapper rule for applying the aspect via rule attribute instead of CLI --aspects.
-# This avoids Skyframe cache invalidation from ConfiguredTargetKey instability (bazelbuild/bazel#19914).
+# Rule-attribute aspects create persistent Skyframe nodes cached across invocations.
 cat > "$bsp_folder_path/skbsp_generated/rules.bzl" << 'RULES_EOF'
 """Wrapper rule that applies platform_deps_aspect via rule attribute.
 
-By applying the aspect through a rule attribute (not CLI --aspects),
-the ConfiguredTargetKey is stable across builds, preventing potential
-Skyframe cache invalidation (bazelbuild/bazel#19914).
+CLI --aspects creates transient TopLevelAspectsKey Skyframe nodes that are
+re-created each invocation, preventing cache reuse across builds.
+Rule-attribute aspects create persistent AspectKey nodes cached across
+invocations, so the wrapper build reuses the same ConfiguredTargetValue
+nodes as a normal app build.
 
 No configuration transition is applied — the app target uses its own
 internal transitions (from ios_application/tvos_application/etc.) to
-configure deps with correct platform settings. This ensures the wrapper
-reuses the same ConfiguredTargetValue nodes as a normal app build.
+configure deps with correct platform settings.
 """
 
 load(":aspect.bzl", "platform_deps_aspect")
