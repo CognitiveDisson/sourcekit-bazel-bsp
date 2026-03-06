@@ -204,6 +204,7 @@ def platform_deps_wrapper(name, target, visibility = None):
         name = name,
         target = target,
         tags = ["manual"],
+        testonly = True,  # Allow wrapping test targets
         visibility = visibility or ["//visibility:public"],
     )
 RULES_EOF
