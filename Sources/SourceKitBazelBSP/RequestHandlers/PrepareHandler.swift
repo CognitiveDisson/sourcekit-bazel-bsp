@@ -37,7 +37,10 @@ final class PrepareHandler {
     // When using remote caching, we need certain types of files to always be available locally
     // so that sourcekit-lsp's manual index builds can work.
     // Original list was inherited from rules_xcodeproj.
+    // Note: --remote_download_outputs=all overrides any --remote_download_toplevel in user's .bazelrc
+    // to ensure transitive dependencies' outputs are downloaded, not just top-level targets.
     static let additionalBuildFlags: [String] = [
+        "--remote_download_outputs=all",
         "--remote_download_regex='.*\\.indexstore/.*|.*\\.(a|cfg|c|C|cc|cl|cpp|cu|cxx|c++|def|h|H|hh|hpp|hxx|h++|hmap|ilc|inc|inl|ipp|tcc|tlh|tli|tpp|m|modulemap|mm|pch|swift|swiftdoc|swiftmodule|swiftsourceinfo|yaml)$'"
     ]
 

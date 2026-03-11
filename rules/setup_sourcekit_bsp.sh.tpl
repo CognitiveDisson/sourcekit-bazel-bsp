@@ -38,6 +38,8 @@ you to build a full app but only output specific libraries with correct
 platform configuration (iOS, tvOS, watchOS).
 """
 
+load("@build_bazel_rules_swift//swift:swift.bzl", "SwiftInfo")
+
 ASPECT_OUTPUT_GROUP_PREFIX = "aspect_"
 
 _PROPAGATION_ATTRS = [
@@ -93,6 +95,24 @@ def _platform_deps_aspect_impl(target, ctx):
     direct_outputs = []
     if DefaultInfo in target:
         direct_outputs = target[DefaultInfo].files.to_list()
+
+    # Collect swiftmodules and module maps from SwiftInfo
+    if SwiftInfo in target:
+        swift_info = target[SwiftInfo]
+        for module in swift_info.direct_modules:
+            # Collect Swift module files (.swiftmodule, .swiftdoc, .swiftsourceinfo)
+            if hasattr(module, "swift") and module.swift:
+                swift = module.swift
+                if hasattr(swift, "swiftmodule") and swift.swiftmodule:
+                    direct_outputs.append(swift.swiftmodule)
+                if hasattr(swift, "swiftdoc") and swift.swiftdoc:
+                    direct_outputs.append(swift.swiftdoc)
+                if hasattr(swift, "swiftsourceinfo") and swift.swiftsourceinfo:
+                    direct_outputs.append(swift.swiftsourceinfo)
+            # Collect clang module maps
+            if hasattr(module, "clang") and module.clang:
+                if hasattr(module.clang, "module_map") and module.clang.module_map:
+                    direct_outputs.append(module.clang.module_map)
 
     transitive_outputs = []
     transitive_output_groups = {}
